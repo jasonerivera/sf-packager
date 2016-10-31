@@ -1,0 +1,61 @@
+<project name="Retrieve and Deploy SFDC metadata" default="deployEmptyCheckOnly" basedir=".." xmlns:sf="antlib:com.salesforce">
+    <taskdef uri="antlib:com.salesforce"
+        resource="com/salesforce/antlib.xml"
+        classpath="${basedir}/build/ant-salesforce.jar"/>
+
+    <property name="directory" value="${basedir}/deploy/${sfdc.featureName}/unpackaged"/>
+    <property file="${basedir}/build/build.properties"/>
+    <property environment="env"/>
+
+    <target name="getCode">
+      <echo level="info">Retrieving the server's version of code</echo>
+      <mkdir dir="${basedir}/${sfdc.retrieveTarget}"/>
+      <sf:retrieve
+        retrieveTarget="${basedir}/${sfdc.retrieveTarget}"
+        username="${sfdc.username}"
+        password="${sfdc.password}"
+        serverurl="${sfdc.serverurl}"
+        unpackaged="src/package.xml"/>
+      <move file="${basedir}/${sfdc.retrieveTarget}" tofile="src"/>
+    </target>
+
+    <target name="deployCode" depends="dir.check" if="dir.exists">
+      <echo level="info">Performing the deploy</echo>
+      <zip destfile="${basedir}/deploy.zip"
+        basedir="${basedir}/deploy"
+      />
+      <sf:deploy
+        username="${sfdc.username}"
+        password="${sfdc.password}"
+        serverurl="${sfdc.serverurl}"
+        deployRoot="${basedir}/deploy/${sfdc.featureName}/unpackaged"
+        pollWaitMillis="${sfdc.pollWaitMillis}"
+        maxPoll="${sfdc.maxPoll}"/>
+    </target>
+
+    <target name="deployEmptyCheckOnly" depends="dir.check" if="dir.exists">
+      <echo>Directory ${directory} exists</echo>
+      <echo level="info">Testing the deploy</echo>
+      <zip destfile="${basedir}/deploy.zip"
+        basedir="${basedir}/deploy"
+      />
+      <sf:deploy
+          checkOnly="true"
+          logType="Debugonly"
+          username="${sfdc.username}"
+          password="${sfdc.password}"
+          serverurl="${sfdc.serverurl}"
+          deployRoot="${basedir}/deploy/${sfdc.featureName}/unpackaged"
+          pollWaitMillis="${sfdc.pollWaitMillis}"
+          maxPoll="${sfdc.maxPoll}"
+          testLevel="RunLocalTests" />
+    </target>
+
+    <target name="dir.check">
+      <echo>Directory path check: ${directory}</echo>
+      <condition property="dir.exists">
+        <available file="${directory}" type="dir"/>
+      </condition>
+    </target>
+
+</project>
